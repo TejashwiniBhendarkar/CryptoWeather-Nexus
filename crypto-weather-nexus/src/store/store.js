@@ -1,14 +1,19 @@
 import { configureStore } from "@reduxjs/toolkit";
-import weatherReducer from "./features/weatherSlice";
-import cryptoReducer from "./features/cryptoSlice";
-import newsReducer from "./features/newsSlice";
+import weatherReducer from "@/store/features/weatherSlice"; // Use absolute imports for consistency
+import newsReducer from "@/store/features/newsSlice";
+import cryptoReducer from "@/store/features/cryptoSlice";
 
-export const store = configureStore({
+const store = configureStore({
   reducer: {
     weather: weatherReducer,
-    crypto: cryptoReducer,
     news: newsReducer,
+    crypto: cryptoReducer,
   },
+  middleware: (getDefaultMiddleware) =>
+    getDefaultMiddleware({
+      serializableCheck: false, // Disable serializable state checks for API responses
+    }),
+  devTools: process.env.NODE_ENV !== "production", // Enable Redux DevTools only in development
 });
 
 export default store;

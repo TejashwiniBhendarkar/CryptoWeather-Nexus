@@ -1,21 +1,19 @@
 "use client";
 import { useState, useEffect } from "react";
 
-export default function CryptoPage() {
+export default function CryptoWebSocket() {
   const [cryptos, setCryptos] = useState([]);
-  const [search, setSearch] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
   const [priceChanges, setPriceChanges] = useState({});
-  const [limit, setLimit] = useState(100); // Initial limit
+  const [error, setError] = useState(null);
+  const [loading, setLoading] = useState(true);
 
-  const fetchCryptoData = async (newLimit) => {
+  // Fetch initial crypto data
+  const fetchCryptoData = async () => {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`https://api.coincap.io/v2/assets?limit=${newLimit}`);
-      
-      if (!res.ok) throw new Error("");
+      const res = await fetch("https://api.coincap.io/v2/assets?limit=10");
+      if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
       const data = await res.json();
       setCryptos(data.data);
     } catch (err) {
@@ -26,10 +24,10 @@ export default function CryptoPage() {
   };
 
   useEffect(() => {
-    fetchCryptoData(limit);
+    fetchCryptoData();
 
-    // WebSocket for real-time updates
-    const socket = new WebSocket("wss://ws.coincap.io/prices?assets=all");
+    // WebSocket connection
+    const socket = new WebSocket("wss://ws.coincap.io/prices?assets=bitcoin,ethereum,dogecoin");
 
     socket.onmessage = (event) => {
       const updatedPrices = JSON.parse(event.data);
@@ -40,15 +38,15 @@ export default function CryptoPage() {
           if (newPrice) {
             return {
               ...coin,
-              previousPrice: coin.priceUsd, // Store previous price
-              priceUsd: newPrice,
+              previousPrice: coin.priceUsd, // Store old price
+              priceUsd: newPrice, // Update to new price
             };
           }
           return coin;
         })
       );
 
-      // Update price changes for coloring
+      // Update price change colors
       setPriceChanges((prevChanges) => {
         const newChanges = { ...prevChanges };
         Object.keys(updatedPrices).forEach((coinId) => {
@@ -64,29 +62,12 @@ export default function CryptoPage() {
       });
     };
 
-    return () => socket.close();
-  }, [limit]); // Re-fetch data when limit changes
-
-  const loadMore = () => {
-    setLimit((prevLimit) => prevLimit + 100); // Increase limit by 100
-  };
-
-  const filteredCryptos = cryptos.filter((coin) =>
-    coin.name.toLowerCase().includes(search.trim().toLowerCase())
-  );
+    return () => socket.close(); // Cleanup WebSocket on unmount
+  }, []);
 
   return (
-    <div className="max-w-6xl mx-auto p-6 mt-4">
-      <h2 className="text-3xl font-bold text-gray-800 text-center mt-10">
-        Live Cryptocurrency Prices
-      </h2>
-      <input
-        type="text"
-        placeholder="Search crypto..."
-        className="w-full p-2 border rounded-md mt-4"
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+    <div className="max-w-4xl mx-auto p-6">
+      <h2 className="text-2xl font-bold text-gray-800 text-center">Live Crypto Prices</h2>
 
       {loading && <p className="text-center mt-4">Loading...</p>}
       {error && <p className="text-center text-red-500 mt-4">{error}</p>}
@@ -95,19 +76,15 @@ export default function CryptoPage() {
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-gray-200 text-gray-700">
-              <th className="p-3">Rank</th>
               <th className="p-3">Name</th>
               <th className="p-3">Price</th>
               <th className="p-3">Market Cap</th>
-              <th className="p-3">VWAP (24Hr)</th>
-              <th className="p-3">Supply</th>
-              <th className="p-3">Volume (24Hr)</th>
               <th className="p-3">Change (24Hr)</th>
             </tr>
           </thead>
           <tbody>
-            {filteredCryptos.length > 0 ? (
-              filteredCryptos.map((coin) => {
+            {cryptos.length > 0 ? (
+              cryptos.map((coin) => {
                 const priceClass =
                   priceChanges[coin.id] === "up"
                     ? "text-green-500 animate-pulse"
@@ -117,15 +94,14 @@ export default function CryptoPage() {
 
                 return (
                   <tr key={coin.id} className="border-b">
-                    <td className="p-3">{coin.rank}</td>
                     <td className="p-3 flex items-center">
                       <img
                         src={`https://assets.coincap.io/assets/icons/${coin.symbol.toLowerCase()}@2x.png`}
                         alt={coin.name}
                         className="w-6 h-6 mr-2"
                         onError={(e) => {
-                          e.target.onerror = null; // Prevent infinite loop
-                          e.target.src = "/images/crypto.png"; // Use a local default image
+                          e.target.onerror = null;
+                          e.target.src = "/images/crypto.png"; // Default image
                         }}
                       />
                       {coin.name} ({coin.symbol.toUpperCase()})
@@ -134,9 +110,6 @@ export default function CryptoPage() {
                       ${Number(coin.priceUsd).toFixed(2)}
                     </td>
                     <td className="p-3">${(Number(coin.marketCapUsd) / 1e9).toFixed(2)}B</td>
-                    <td className="p-3">${Number(coin.vwap24Hr).toFixed(2)}</td>
-                    <td className="p-3">{(Number(coin.supply) / 1e6).toFixed(2)}M</td>
-                    <td className="p-3">${(Number(coin.volumeUsd24Hr) / 1e9).toFixed(2)}B</td>
                     <td
                       className={`p-3 ${
                         Number(coin.changePercent24Hr) < 0 ? "text-red-500" : "text-green-500"
@@ -149,24 +122,19 @@ export default function CryptoPage() {
               })
             ) : (
               <tr>
-                {/* <td colSpan="8" className="text-center p-4">
-                  No cryptocurrencies found.
-                </td> */}
+                <td colSpan="4" className="text-center p-4">
+                  No data available.
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
-
-      {/* Load More Button */}
-      <div className="flex justify-center mt-6">
-        <button
-          className="bg-green-500 text-white px-4 py-2 rounded-md"
-          onClick={loadMore}
-        >
-          Load More
-        </button>
-      </div>
     </div>
   );
 }
+
+
+
+
+
