@@ -1,107 +1,85 @@
 "use client";
-import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
 
-export default function CryptoDetailsPage() {
-  const { id } = useParams();
-  const [crypto, setCrypto] = useState(null);
-  const [historicalData, setHistoricalData] = useState([]);
-  const [loading, setLoading] = useState(true);
+import { useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
+import { fetchWeatherHistory } from "../../../store/features/weatherSlice";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+} from "recharts";
+import { Loader2 } from "lucide-react";
+
+export default function WeatherDetail({ params }) {
+  const { city } = params;
+  const decodedCity = decodeURIComponent(city);
+
+  const dispatch = useDispatch();
+  const history = useSelector((state) => state.weather.history[decodedCity]);
+  const status = useSelector((state) => state.weather.status);
+  const error = useSelector((state) => state.weather.error);
+  const router = useRouter();
 
   useEffect(() => {
-    const fetchCryptoDetails = async () => {
-      try {
-        const res = await fetch(`https://api.coincap.io/v2/assets/${id}`, {
-          cache: "no-store",
-        });
-        const data = await res.json();
-        console.log("Crypto Details Response:", data); // Debugging
-        setCrypto(data.data || null);
-      } catch (err) {
-        console.error("Error fetching crypto details:", err);
-        setCrypto(null);
-      }
-    };
-
-    const fetchHistoricalData = async () => {
-      try {
-        const res = await fetch(
-          `https://api.coincap.io/v2/assets/${id}/history?interval=d1`,
-          { cache: "no-store" }
-        );
-        const data = await res.json();
-        console.log("Historical Data Response:", data); // Debugging
-
-        if (Array.isArray(data.data)) {
-          setHistoricalData(data.data);
-        } else {
-          setHistoricalData([]);
-        }
-      } catch (err) {
-        console.error("Error fetching historical data:", err);
-        setHistoricalData([]);
-      }
-    };
-
-    fetchCryptoDetails();
-    fetchHistoricalData();
-    setLoading(false);
-  }, [id]);
-
-  if (loading || !crypto)
-    return <p className="text-center text-gray-600 mt-10">Loading...</p>;
+    if (decodedCity) dispatch(fetchWeatherHistory(decodedCity));
+  }, [decodedCity, dispatch]);
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg mt-8">
-      <h2 className="text-3xl font-bold text-gray-800 text-center mb-4 mt-8">
-        {crypto.name} Details
-      </h2>
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
+      <button
+        onClick={() => router.push("/weather")}
+        className="absolute top-4 left-4 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition duration-300"
+      >
+        ← Back
+      </button>
 
-      {/* Current Price Section */}
-      <div className="bg-gray-100 p-4 rounded-lg text-center mb-6">
-        <p className="text-lg font-medium text-gray-600">Current Price</p>
-        <p className="text-2xl font-bold text-green-500">
-          ${crypto?.priceUsd ? Number(crypto.priceUsd).toFixed(2) : "Reload again..."}
-        </p>
-      </div>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">
+        {decodedCity} - Weather Details
+      </h1>
 
-      {/* Historical Prices Section */}
-      <h3 className="text-xl font-semibold text-gray-700 text-center mb-3">
-        Historical Prices (Last 7 Days)
-      </h3>
+      {/* Loading State */}
+      {status === "loading" && (
+        <div className="flex items-center space-x-2 text-lg text-blue-500">
+          <Loader2 className="animate-spin w-6 h-6" />
+          <span>Loading history...</span>
+        </div>
+      )}
 
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white shadow-md rounded-lg border border-gray-200">
-          <thead>
-            <tr className="bg-gray-200 text-gray-700 text-left">
-              <th className="p-3 font-semibold">Date</th>
-              <th className="p-3 font-semibold">Price (USD)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {historicalData.length > 0 ? (
-              historicalData.slice(-7).map((entry, index) => (
-                <tr key={index} className="border-b hover:bg-gray-100">
-                  <td className="p-3">
-                    {entry?.time
-                      ? new Date(entry.time).toISOString().split("T")[0]
-                      : "N/A"}
-                  </td>
-                  <td className="p-3 font-semibold text-blue-500">
-                    ${entry?.priceUsd ? Number(entry.priceUsd).toFixed(2) : "N/A"}
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="2" className="text-center p-4 text-gray-500">
-                  reload....
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+      {/* Error State */}
+      {status === "failed" && (
+        <p className="text-red-500 text-lg">❌ Error: {error}</p>
+      )}
+
+      {/* Display Weather Data */}
+      {history && history.length > 0 && (
+        <div className="w-full max-w-2xl bg-white p-4 shadow-lg rounded-lg">
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Temperature Trend (Next 5 Days)
+          </h2>
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={history.slice(0, 10)}>
+              <XAxis dataKey="dt_txt" tick={{ fontSize: 12 }} />
+              <YAxis />
+              <Tooltip />
+              <Line
+                type="monotone"
+                dataKey="main.temp"
+                stroke="#8884d8"
+                strokeWidth={2}
+              />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
+      {/* No Data Available */}
+      {!history && status !== "loading" && !error && (
+        <p className="text-gray-500">No historical data available.</p>
+      )}
     </div>
   );
 }
