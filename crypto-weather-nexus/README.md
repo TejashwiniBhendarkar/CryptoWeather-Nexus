@@ -110,5 +110,6 @@ CryptoWeather-Nexus/
 
 
 
+![Screenshot 2025-04-04 211330](https://github.com/user-attachments/assets/b01f2dff-7cfc-4300-be63-eab62c69e447)
 
 
