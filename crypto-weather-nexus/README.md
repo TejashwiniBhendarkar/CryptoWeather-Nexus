@@ -1,36 +1,114 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CryptoWeather Nexus
 
-## Getting Started
+CryptoWeather Nexus is a real-time dashboard that integrates **cryptocurrency**, **weather**, and **news** APIs to provide up-to-date market trends, weather forecasts, and news updates. The application is built using **Next.js (App Router)**, **Redux Toolkit**, **WebSockets**, and **Tailwind CSS**.
 
-First, run the development server:
+##  Features
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+- **Weather Dashboard** 
+  - Fetches current weather conditions and historical weather data for different cities.
+  - Interactive charts using **Recharts** for historical trends.
+
+- **Crypto Dashboard**  
+  - Displays live cryptocurrency prices with WebSocket updates (CoinCap API).
+  - Detailed price history and market stats for selected coins.
+
+- **News Dashboard** 
+  - Fetches real-time cryptocurrency news from **NewsData.io** API.
+
+## 🚀 Tech Stack
+
+- **Frontend**: Next.js (App Router), React, Redux Toolkit, Tailwind CSS, Recharts
+- **Backend APIs**: Custom API routes in Next.js for handling weather and news API requests.
+- **Data Sources**:
+  - **Weather**: OpenWeatherMap API
+  - **Cryptocurrency**: CoinGecko & CoinCap API
+  - **News**: NewsData.io API
+- **Deployment**: Vercel
+
+## 🛠️ Installation & Setup
+
+### 1️⃣ Clone the Repository
+```sh
+ git clone https://github.com/your-username/CryptoWeather-Nexus.git
+ cd CryptoWeather-Nexus
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+### 2️⃣ Install Dependencies
+```sh
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+### 3️⃣ Set Up Environment Variables
+Create a `.env.local` file in the root directory and add the following:
+```env
+NEXT_PUBLIC_WEATHER_API_KEY=your_openweathermap_api_key
+NEXT_PUBLIC_COINGECKO_API_KEY=your_coingecko_api_key
+NEXT_PUBLIC_NEWSDATA_API_KEY=your_newsdata_api_key
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+### 4️⃣ Run Locally
+```sh
+npm run dev
+```
+The app will be available at `http://localhost:3000`
 
-## Learn More
+## 🔗 API Routes
 
-To learn more about Next.js, take a look at the following resources:
+### Weather API (`/api/weather`)
+Fetches weather data from OpenWeatherMap.
+```sh
+GET /api/weather?city=London
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### News API (`/api/news`)
+Fetches cryptocurrency news articles from NewsData.io.
+```sh
+GET /api/news
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## 🚀 Deployment (Vercel)
 
-## Deploy on Vercel
+To deploy to **Vercel**, run:
+```sh
+vercel --prod
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📌 Project Structure
+```
+CryptoWeather-Nexus/
+├── app/
+│   ├── layout.jsx
+│   ├── page.jsx
+│   ├── weather/
+│   │   ├── page.jsx
+│   │   ├── [city]/page.jsx
+│   ├── crypto/
+│   │   ├── page.jsx
+│   │   ├── [id]/page.jsx
+│   ├── news/
+│   │   ├── page.jsx
+│   ├── api/
+│   │   ├── weather.js
+│   │   ├── news.js
+├── store/
+│   ├── features/
+│   │   ├── weatherSlice.js
+│   │   ├── cryptoSlice.js
+│   │   ├── newsSlice.js
+├── components/
+├── public/
+├── styles/
+├── .env.local
+├── package.json
+├── README.md
+```
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+##  Troubleshooting
+- **Build Issues**: Check logs with `vercel logs <deployment-url>`.
+- **API Errors**: Ensure API keys are correctly set in `.env.local`.
+
+
+
+
+
+
