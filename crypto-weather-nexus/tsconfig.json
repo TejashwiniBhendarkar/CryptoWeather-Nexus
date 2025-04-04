@@ -26,7 +26,8 @@
     "noEmit": true,
     "module": "esnext",
     "esModuleInterop": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "strictNullChecks": true
   },
   "include": [
     "**/*.ts",

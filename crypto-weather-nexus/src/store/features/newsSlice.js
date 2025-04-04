@@ -1,12 +1,14 @@
+// store/features/newsSlice.js
+
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import axios from "axios";
 
-const API_KEY = process.env.NEXT_PUBLIC_NEWSDATA_API_KEY;
-const NEWS_API_URL = `https://newsdata.io/api/1/news?apikey=${API_KEY}&q=cryptocurrency&language=en`;
+// The API route that acts as a proxy to fetch news articles
+const API_URL = "/api/news"; // Internal API route
 
 export const fetchCryptoNews = createAsyncThunk("news/fetchCryptoNews", async () => {
-  const response = await axios.get(NEWS_API_URL);
-  return response.data.results.slice(0, 5); // Get top 5 news articles
+  const response = await axios.get(API_URL); // Make the request to the internal API route
+  return response.data; // Return the top 5 news articles
 });
 
 const newsSlice = createSlice({
