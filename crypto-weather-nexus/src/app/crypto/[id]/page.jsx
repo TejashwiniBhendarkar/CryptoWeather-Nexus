@@ -52,8 +52,8 @@ export default function CryptoDetailsPage() {
     return <p className="text-center text-gray-600 mt-10">Loading...</p>;
 
   return (
-    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg">
-      <h2 className="text-3xl font-bold text-gray-800 text-center mb-4">
+    <div className="max-w-4xl mx-auto p-6 bg-white shadow-md rounded-lg mt-8">
+      <h2 className="text-3xl font-bold text-gray-800 text-center mb-4 mt-8">
         {crypto.name} Details
       </h2>
 

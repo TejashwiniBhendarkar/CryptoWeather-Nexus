@@ -1,9 +1,12 @@
 "use client";
 import { useState, useEffect } from "react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function CryptoWebSocket() {
   const [cryptos, setCryptos] = useState([]);
   const [priceChanges, setPriceChanges] = useState({});
+  const [previousPrices, setPreviousPrices] = useState({});
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -16,13 +19,19 @@ export default function CryptoWebSocket() {
       if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
       const data = await res.json();
 
-      // Initialize previousPrice for correct first-time updates
+      // Initialize previousPrice for first-time WebSocket updates
       const formattedData = data.data.map((coin) => ({
         ...coin,
         previousPrice: parseFloat(coin.priceUsd),
       }));
 
       setCryptos(formattedData);
+      setPreviousPrices(
+        formattedData.reduce((acc, coin) => {
+          acc[coin.id] = parseFloat(coin.priceUsd);
+          return acc;
+        }, {})
+      );
     } catch (err) {
       setError(err.message);
     } finally {
@@ -43,31 +52,54 @@ export default function CryptoWebSocket() {
     socket.onmessage = (event) => {
       const updatedPrices = JSON.parse(event.data);
 
-      setCryptos((prevCryptos) => {
-        return prevCryptos.map((coin) => {
+      setCryptos((prevCryptos) =>
+        prevCryptos.map((coin) => {
           const newPrice = updatedPrices[coin.id];
 
           if (newPrice) {
             return {
               ...coin,
-              previousPrice: coin.priceUsd || coin.previousPrice, // Keep first known price
-              priceUsd: newPrice, // Update to new price
+              previousPrice: coin.priceUsd || coin.previousPrice, // Keep last known price
+              priceUsd: newPrice, // Update price
             };
           }
           return coin;
+        })
+      );
+
+      // Detect significant price changes (±2%)
+      setPreviousPrices((prev) => {
+        const newPrices = { ...prev, ...updatedPrices };
+
+        Object.keys(updatedPrices).forEach((coinId) => {
+          const newPrice = parseFloat(updatedPrices[coinId]);
+          const oldPrice = prev[coinId];
+
+          if (oldPrice && Math.abs((newPrice - oldPrice) / oldPrice) * 100 >= 2) {
+            toast.warn(`${coinId.toUpperCase()} price changed significantly!`, {
+              position: "top-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: true,
+              pauseOnHover: true,
+              draggable: true,
+            });
+          }
         });
+
+        return newPrices;
       });
 
-      // Update price change indicators
+      // Update price change indicators (up/down)
       setPriceChanges((prevChanges) => {
         const newChanges = { ...prevChanges };
 
-        Object.entries(updatedPrices).forEach(([coinId, newPrice]) => {
-          const oldPrice =
-            prevChanges[coinId] || cryptos.find((c) => c.id === coinId)?.priceUsd;
-          if (oldPrice) {
+        Object.keys(updatedPrices).forEach((coinId) => {
+          if (previousPrices[coinId] !== undefined) {
             newChanges[coinId] =
-              parseFloat(newPrice) > parseFloat(oldPrice) ? "up" : "down";
+              parseFloat(updatedPrices[coinId]) > parseFloat(previousPrices[coinId])
+                ? "up"
+                : "down";
           }
         });
 
@@ -83,6 +115,7 @@ export default function CryptoWebSocket() {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
+      <ToastContainer />
       <h2 className="text-2xl font-bold text-gray-800 text-center">Live Crypto Prices</h2>
 
       {loading && <p className="text-center mt-4">Loading...</p>}
