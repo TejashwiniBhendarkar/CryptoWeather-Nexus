@@ -12,6 +12,7 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
+import { Loader2 } from "lucide-react";
 
 export default function WeatherDetail({ params }) {
   const { city } = params;
@@ -31,19 +32,34 @@ export default function WeatherDetail({ params }) {
     <div className="min-h-screen flex flex-col items-center justify-center bg-gray-100 p-4">
       <button
         onClick={() => router.push("/weather")}
-        className="absolute top-4 left-4 px-4 py-2 bg-gray-700 text-white rounded-lg"
+        className="absolute top-4 left-4 px-4 py-2 bg-gray-700 text-white rounded-lg hover:bg-gray-800 transition duration-300"
       >
         ← Back
       </button>
 
-      <h1 className="text-3xl font-bold mb-6">{decodedCity} - Weather Details</h1>
+      <h1 className="text-3xl font-bold mb-6 text-gray-900">
+        {decodedCity} - Weather Details
+      </h1>
 
-      {status === "loading" && <p className="text-blue-500">Loading history...</p>}
-      {error && <p className="text-red-500">Error: {error}</p>}
+      {/* Loading State */}
+      {status === "loading" && (
+        <div className="flex items-center space-x-2 text-lg text-blue-500">
+          <Loader2 className="animate-spin w-6 h-6" />
+          <span>Loading history...</span>
+        </div>
+      )}
 
-      {history && (
+      {/* Error State */}
+      {status === "failed" && (
+        <p className="text-red-500 text-lg">❌ Error: {error}</p>
+      )}
+
+      {/* Display Weather Data */}
+      {history && history.length > 0 && (
         <div className="w-full max-w-2xl bg-white p-4 shadow-lg rounded-lg">
-          <h2 className="text-xl font-semibold mb-4">Temperature Trend (Next 5 Days)</h2>
+          <h2 className="text-xl font-semibold mb-4 text-gray-900">
+            Temperature Trend (Next 5 Days)
+          </h2>
           <ResponsiveContainer width="100%" height={300}>
             <LineChart data={history.slice(0, 10)}>
               <XAxis dataKey="dt_txt" tick={{ fontSize: 12 }} />
@@ -58,6 +74,11 @@ export default function WeatherDetail({ params }) {
             </LineChart>
           </ResponsiveContainer>
         </div>
+      )}
+
+      {/* No Data Available */}
+      {!history && status !== "loading" && !error && (
+        <p className="text-gray-500">No historical data available.</p>
       )}
     </div>
   );

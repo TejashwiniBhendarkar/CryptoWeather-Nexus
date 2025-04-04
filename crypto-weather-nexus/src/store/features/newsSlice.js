@@ -1,39 +1,29 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
+import axios from "axios";
 
-// API URL (Replace with a real API)
-const NEWS_API_URL = "https://newsdata.io/api/1/news?apikey=YOUR_API_KEY&q=crypto";
+const API_KEY = process.env.NEXT_PUBLIC_NEWSDATA_API_KEY;
+const NEWS_API_URL = `https://newsdata.io/api/1/news?apikey=${API_KEY}&q=cryptocurrency&language=en`;
 
-// Async Thunk to Fetch News
-export const fetchNews = createAsyncThunk("news/fetchNews", async () => {
-  const response = await fetch(NEWS_API_URL);
-  if (!response.ok) {
-    throw new Error("Failed to fetch news");
-  }
-  const data = await response.json();
-  return data.results; // Adjust based on API response structure
+export const fetchCryptoNews = createAsyncThunk("news/fetchCryptoNews", async () => {
+  const response = await axios.get(NEWS_API_URL);
+  return response.data.results.slice(0, 5); // Get top 5 news articles
 });
 
-// News Slice
 const newsSlice = createSlice({
   name: "news",
-  initialState: {
-    articles: [],
-    loading: false,
-    error: null,
-  },
+  initialState: { articles: [], status: "idle", error: null },
   reducers: {},
   extraReducers: (builder) => {
     builder
-      .addCase(fetchNews.pending, (state) => {
-        state.loading = true;
-        state.error = null;
+      .addCase(fetchCryptoNews.pending, (state) => {
+        state.status = "loading";
       })
-      .addCase(fetchNews.fulfilled, (state, action) => {
-        state.loading = false;
+      .addCase(fetchCryptoNews.fulfilled, (state, action) => {
+        state.status = "succeeded";
         state.articles = action.payload;
       })
-      .addCase(fetchNews.rejected, (state, action) => {
-        state.loading = false;
+      .addCase(fetchCryptoNews.rejected, (state, action) => {
+        state.status = "failed";
         state.error = action.error.message;
       });
   },

@@ -1,5 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { toggleFavoriteCrypto } from "../../store/features/favoritesSlice";
+import Link from "next/link";
 
 export default function CryptoPage() {
   const [cryptos, setCryptos] = useState([]);
@@ -7,15 +10,18 @@ export default function CryptoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [priceChanges, setPriceChanges] = useState({});
-  const [limit, setLimit] = useState(100); // Initial limit
+  const [limit, setLimit] = useState(100);
+
+  const dispatch = useDispatch();
+  const favoriteCryptos = useSelector((state) => state.favorites.cryptos);
 
   const fetchCryptoData = async (newLimit) => {
     try {
       setLoading(true);
       setError(null);
       const res = await fetch(`https://api.coincap.io/v2/assets?limit=${newLimit}`);
-      
-      if (!res.ok) throw new Error("");
+
+      if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
       setCryptos(data.data);
     } catch (err) {
@@ -40,7 +46,7 @@ export default function CryptoPage() {
           if (newPrice) {
             return {
               ...coin,
-              previousPrice: coin.priceUsd, // Store previous price
+              previousPrice: coin.priceUsd,
               priceUsd: newPrice,
             };
           }
@@ -65,10 +71,10 @@ export default function CryptoPage() {
     };
 
     return () => socket.close();
-  }, [limit]); // Re-fetch data when limit changes
+  }, [limit]);
 
   const loadMore = () => {
-    setLimit((prevLimit) => prevLimit + 100); // Increase limit by 100
+    setLimit((prevLimit) => prevLimit + 100);
   };
 
   const filteredCryptos = cryptos.filter((coin) =>
@@ -103,6 +109,7 @@ export default function CryptoPage() {
               <th className="p-3">Supply</th>
               <th className="p-3">Volume (24Hr)</th>
               <th className="p-3">Change (24Hr)</th>
+              <th className="p-3">Favorite</th>
             </tr>
           </thead>
           <tbody>
@@ -124,11 +131,13 @@ export default function CryptoPage() {
                         alt={coin.name}
                         className="w-6 h-6 mr-2"
                         onError={(e) => {
-                          e.target.onerror = null; // Prevent infinite loop
-                          e.target.src = "/images/crypto.png"; // Use a local default image
+                          e.target.onerror = null;
+                          e.target.src = "/images/crypto.png";
                         }}
                       />
-                      {coin.name} ({coin.symbol.toUpperCase()})
+                      <Link href={`/crypto/${coin.id}`} className="text-blue-600 hover:underline">
+                        {coin.name} ({coin.symbol.toUpperCase()})
+                      </Link>
                     </td>
                     <td className={`p-3 font-semibold ${priceClass}`}>
                       ${Number(coin.priceUsd).toFixed(2)}
@@ -144,21 +153,25 @@ export default function CryptoPage() {
                     >
                       {Number(coin.changePercent24Hr).toFixed(2)}%
                     </td>
+                    <td className="p-3">
+                      <button onClick={() => dispatch(toggleFavoriteCrypto(coin.id))}>
+                        {favoriteCryptos.includes(coin.id) ? "⭐" : "☆"}
+                      </button>
+                    </td>
                   </tr>
                 );
               })
             ) : (
               <tr>
-                {/* <td colSpan="8" className="text-center p-4">
+                <td colSpan="9" className="text-center p-4">
                   No cryptocurrencies found.
-                </td> */}
+                </td>
               </tr>
             )}
           </tbody>
         </table>
       </div>
 
-      {/* Load More Button */}
       <div className="flex justify-center mt-6">
         <button
           className="bg-green-500 text-white px-4 py-2 rounded-md"
