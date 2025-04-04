@@ -3,13 +3,17 @@
 import { useState, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchWeather } from "../../store/features/weatherSlice";
-import WeatherCard from "../../components/WeatherCard";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Loader2 } from "lucide-react";
+import { toast, ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function Weather() {
   const [city, setCity] = useState("");
+  const [alerts, setAlerts] = useState([]);
   const dispatch = useDispatch();
+  const router = useRouter();
   const { cities, status, error } = useSelector((state) => state.weather);
 
   const predefinedCities = ["New York", "London", "Tokyo"];
@@ -18,6 +22,22 @@ export default function Weather() {
     predefinedCities.forEach((city) => {
       dispatch(fetchWeather(city));
     });
+
+    // Simulate one mock weather alert
+    const mockAlert = {
+      city: "New York",
+      message: " Weather Alert for New York: Severe conditions expected!",
+      type: "heatwave",
+    };
+
+    setTimeout(() => {
+      setAlerts((prev) => [...prev, mockAlert]);
+      toast.warning(mockAlert.message, {
+        position: "top-right",
+        autoClose: 5000,
+      });
+    }, 4000); // simulate after 4 seconds
+
   }, [dispatch]);
 
   const handleFetchWeather = () => {
@@ -27,8 +47,14 @@ export default function Weather() {
     }
   };
 
+  const handleCityClick = (cityName) => {
+    router.push(`/weather/${encodeURIComponent(cityName)}`);
+  };
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-blue-400 to-purple-600 p-6 text-white">
+      <ToastContainer />
+      
       <motion.h1 
         className="text-4xl font-extrabold mb-6 text-center drop-shadow-md"
         initial={{ opacity: 0, y: -20 }}
@@ -70,8 +96,13 @@ export default function Weather() {
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.3 }}
+            className="bg-white text-gray-900 p-6 rounded-lg shadow-lg cursor-pointer hover:scale-105 transition-transform"
+            onClick={() => handleCityClick(weatherData.name)}
           >
-            <WeatherCard weatherData={weatherData} />
+            <h2 className="text-2xl font-bold mb-2">{weatherData.name}</h2>
+            <p className="text-lg">🌡️ Temp: {weatherData.main.temp}°C</p>
+            <p className="text-lg">💧 Humidity: {weatherData.main.humidity}%</p>
+            <p className="text-lg">🌥️ Condition: {weatherData.weather[0].description}</p>
           </motion.div>
         ))}
       </div>
