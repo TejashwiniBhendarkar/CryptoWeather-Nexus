@@ -70,7 +70,15 @@ export default function CryptoPage() {
       });
     };
 
-    return () => socket.close();
+    // Auto-refresh data every 60 seconds
+    const interval = setInterval(() => {
+      fetchCryptoData(limit);
+    }, 60000);
+
+    return () => {
+      socket.close();
+      clearInterval(interval); // Cleanup to prevent memory leaks
+    };
   }, [limit]);
 
   const loadMore = () => {
@@ -164,7 +172,7 @@ export default function CryptoPage() {
             ) : (
               <tr>
                 <td colSpan="9" className="text-center p-4">
-                  No cryptocurrencies found.
+                  Reload...
                 </td>
               </tr>
             )}
