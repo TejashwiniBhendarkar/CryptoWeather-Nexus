@@ -15,7 +15,14 @@ export default function CryptoWebSocket() {
       const res = await fetch("https://api.coincap.io/v2/assets?limit=10");
       if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
       const data = await res.json();
-      setCryptos(data.data);
+
+      // Initialize previousPrice for correct first-time updates
+      const formattedData = data.data.map((coin) => ({
+        ...coin,
+        previousPrice: parseFloat(coin.priceUsd),
+      }));
+
+      setCryptos(formattedData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -29,40 +36,49 @@ export default function CryptoWebSocket() {
     // WebSocket connection
     const socket = new WebSocket("wss://ws.coincap.io/prices?assets=bitcoin,ethereum,dogecoin");
 
+    socket.onopen = () => console.log("✅ WebSocket connected");
+    socket.onerror = (error) => console.error("🚨 WebSocket Error:", error);
+    socket.onclose = () => console.log("🔴 WebSocket disconnected");
+
     socket.onmessage = (event) => {
       const updatedPrices = JSON.parse(event.data);
 
-      setCryptos((prevCryptos) =>
-        prevCryptos.map((coin) => {
+      setCryptos((prevCryptos) => {
+        return prevCryptos.map((coin) => {
           const newPrice = updatedPrices[coin.id];
+
           if (newPrice) {
             return {
               ...coin,
-              previousPrice: coin.priceUsd, // Store old price
+              previousPrice: coin.priceUsd || coin.previousPrice, // Keep first known price
               priceUsd: newPrice, // Update to new price
             };
           }
           return coin;
-        })
-      );
+        });
+      });
 
-      // Update price change colors
+      // Update price change indicators
       setPriceChanges((prevChanges) => {
         const newChanges = { ...prevChanges };
-        Object.keys(updatedPrices).forEach((coinId) => {
-          if (prevChanges[coinId] !== undefined) {
+
+        Object.entries(updatedPrices).forEach(([coinId, newPrice]) => {
+          const oldPrice =
+            prevChanges[coinId] || cryptos.find((c) => c.id === coinId)?.priceUsd;
+          if (oldPrice) {
             newChanges[coinId] =
-              parseFloat(updatedPrices[coinId]) > parseFloat(prevChanges[coinId])
-                ? "up"
-                : "down";
+              parseFloat(newPrice) > parseFloat(oldPrice) ? "up" : "down";
           }
-          newChanges[coinId] = updatedPrices[coinId];
         });
+
         return newChanges;
       });
     };
 
-    return () => socket.close(); // Cleanup WebSocket on unmount
+    return () => {
+      socket.onclose = null;
+      socket.close();
+    };
   }, []);
 
   return (
@@ -133,8 +149,3 @@ export default function CryptoWebSocket() {
     </div>
   );
 }
-
-
-
-
-
