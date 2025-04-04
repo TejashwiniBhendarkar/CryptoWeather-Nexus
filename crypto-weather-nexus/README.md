@@ -109,7 +109,23 @@ CryptoWeather-Nexus/
 
 
 
-
+Homepage:
 ![Screenshot 2025-04-04 211330](https://github.com/user-attachments/assets/b01f2dff-7cfc-4300-be63-eab62c69e447)
+![Screenshot 2025-04-04 212014](https://github.com/user-attachments/assets/a8f5cfef-daff-42ab-a18b-5fe01666424b)
+
+
+Crypto page
+![Screenshot 2025-04-04 211626](https://github.com/user-attachments/assets/3dc9cfb4-ecd6-424b-a8a5-0fb674a9691a)
+![Screenshot 2025-04-04 211707](https://github.com/user-attachments/assets/986e20cd-c270-42cb-a07c-e4fa4339aa53)
+
+  Weather page
+  ![Screenshot 2025-04-04 211825](https://github.com/user-attachments/assets/439de5f4-14cb-4552-91ff-06740df162e4)
+  ![Screenshot 2025-04-04 211902](https://github.com/user-attachments/assets/a50a212f-4053-46d3-8aaf-1e6ecc30ea06)
+
+News page
+![Screenshot 2025-04-04 211943](https://github.com/user-attachments/assets/daa8cac6-b034-4e25-a026-11551ef5afac)
+
+
+
 
 
