@@ -16,6 +16,8 @@ export default async function handler(req, res) {
     // Return top 5 articles
     res.status(200).json(data.results.slice(0, 5));
   } catch (error) {
-    res.status(500).json({ error: "Failed to fetch news articles" });
+    console.error("News API Error:", error); // Log error for debugging
+    res.status(500).json({ error: error.message || "Failed to fetch news articles" });
   }
+  
 }

@@ -15,8 +15,9 @@ export default async function handler(req, res) {
       } else {
         res.status(404).json({ message: 'City not found' });
       }
-    } catch (error) {
-      res.status(500).json({ message: 'Internal server error' });
-    }
+    }  catch (error) {
+        console.error("Weather API Error:", error); // Log error for debugging
+        res.status(500).json({ message: error.message || 'Internal server error' });
+      }
   }
   
