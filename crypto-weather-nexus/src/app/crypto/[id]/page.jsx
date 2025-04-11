@@ -11,12 +11,9 @@ export default function CryptoDetailsPage() {
   useEffect(() => {
     const fetchCryptoDetails = async () => {
       try {
-        const res = await fetch(`https://api.coincap.io/v2/assets/${id}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`https://api.coingecko.com/api/v3/coins/${id}`);
         const data = await res.json();
-        console.log("Crypto Details Response:", data); // Debugging
-        setCrypto(data.data || null);
+        setCrypto(data || null);
       } catch (err) {
         console.error("Error fetching crypto details:", err);
         setCrypto(null);
@@ -26,14 +23,11 @@ export default function CryptoDetailsPage() {
     const fetchHistoricalData = async () => {
       try {
         const res = await fetch(
-          `https://api.coincap.io/v2/assets/${id}/history?interval=d1`,
-          { cache: "no-store" }
+          `https://api.coingecko.com/api/v3/coins/${id}/market_chart?vs_currency=usd&days=7&interval=daily`
         );
         const data = await res.json();
-        console.log("Historical Data Response:", data); // Debugging
-
-        if (Array.isArray(data.data)) {
-          setHistoricalData(data.data);
+        if (Array.isArray(data.prices)) {
+          setHistoricalData(data.prices); // [ [timestamp, price], ... ]
         } else {
           setHistoricalData([]);
         }
@@ -61,7 +55,9 @@ export default function CryptoDetailsPage() {
       <div className="bg-gray-100 p-4 rounded-lg text-center mb-6">
         <p className="text-lg font-medium text-gray-600">Current Price</p>
         <p className="text-2xl font-bold text-green-500">
-          ${crypto?.priceUsd ? Number(crypto.priceUsd).toFixed(2) : "Reload again..."}
+          ${crypto.market_data?.current_price?.usd
+            ? crypto.market_data.current_price.usd.toFixed(2)
+            : "Reload again..."}
         </p>
       </div>
 
@@ -80,22 +76,20 @@ export default function CryptoDetailsPage() {
           </thead>
           <tbody>
             {historicalData.length > 0 ? (
-              historicalData.slice(-7).map((entry, index) => (
+              historicalData.map(([timestamp, price], index) => (
                 <tr key={index} className="border-b hover:bg-gray-100">
                   <td className="p-3">
-                    {entry?.time
-                      ? new Date(entry.time).toISOString().split("T")[0]
-                      : "N/A"}
+                    {new Date(timestamp).toISOString().split("T")[0]}
                   </td>
                   <td className="p-3 font-semibold text-blue-500">
-                    ${entry?.priceUsd ? Number(entry.priceUsd).toFixed(2) : "N/A"}
+                    ${price.toFixed(2)}
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
                 <td colSpan="2" className="text-center p-4 text-gray-500">
-                  reload....
+                  Reload...
                 </td>
               </tr>
             )}

@@ -10,7 +10,7 @@ export default function CryptoPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [priceChanges, setPriceChanges] = useState({});
-  const [limit, setLimit] = useState(100);
+  const [limit, setLimit] = useState(10);
 
   const dispatch = useDispatch();
   const favoriteCryptos = useSelector((state) => state.favorites.cryptos);
@@ -19,11 +19,12 @@ export default function CryptoPage() {
     try {
       setLoading(true);
       setError(null);
-      const res = await fetch(`https://api.coincap.io/v2/assets?limit=${newLimit}`);
-
+      const res = await fetch(
+        `https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=${newLimit}&page=1&sparkline=false`
+      );
       if (!res.ok) throw new Error("Failed to fetch data");
       const data = await res.json();
-      setCryptos(data.data);
+      setCryptos(data);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -33,56 +34,12 @@ export default function CryptoPage() {
 
   useEffect(() => {
     fetchCryptoData(limit);
-
-    // WebSocket for real-time updates
-    const socket = new WebSocket("wss://ws.coincap.io/prices?assets=all");
-
-    socket.onmessage = (event) => {
-      const updatedPrices = JSON.parse(event.data);
-
-      setCryptos((prevCryptos) =>
-        prevCryptos.map((coin) => {
-          const newPrice = updatedPrices[coin.id];
-          if (newPrice) {
-            return {
-              ...coin,
-              previousPrice: coin.priceUsd,
-              priceUsd: newPrice,
-            };
-          }
-          return coin;
-        })
-      );
-
-      // Update price changes for coloring
-      setPriceChanges((prevChanges) => {
-        const newChanges = { ...prevChanges };
-        Object.keys(updatedPrices).forEach((coinId) => {
-          if (prevChanges[coinId] !== undefined) {
-            newChanges[coinId] =
-              parseFloat(updatedPrices[coinId]) > parseFloat(prevChanges[coinId])
-                ? "up"
-                : "down";
-          }
-          newChanges[coinId] = updatedPrices[coinId];
-        });
-        return newChanges;
-      });
-    };
-
-    // Auto-refresh data every 60 seconds
-    const interval = setInterval(() => {
-      fetchCryptoData(limit);
-    }, 60000);
-
-    return () => {
-      socket.close();
-      clearInterval(interval); // Cleanup to prevent memory leaks
-    };
+    const interval = setInterval(() => fetchCryptoData(limit), 60000);
+    return () => clearInterval(interval);
   }, [limit]);
 
   const loadMore = () => {
-    setLimit((prevLimit) => prevLimit + 100);
+    setLimit((prevLimit) => prevLimit + 10);
   };
 
   const filteredCryptos = cryptos.filter((coin) =>
@@ -113,9 +70,8 @@ export default function CryptoPage() {
               <th className="p-3">Name</th>
               <th className="p-3">Price</th>
               <th className="p-3">Market Cap</th>
-              <th className="p-3">VWAP (24Hr)</th>
+              <th className="p-3">Total Volume</th>
               <th className="p-3">Supply</th>
-              <th className="p-3">Volume (24Hr)</th>
               <th className="p-3">Change (24Hr)</th>
               <th className="p-3">Favorite</th>
             </tr>
@@ -132,10 +88,10 @@ export default function CryptoPage() {
 
                 return (
                   <tr key={coin.id} className="border-b">
-                    <td className="p-3">{coin.rank}</td>
+                    <td className="p-3">{coin.market_cap_rank}</td>
                     <td className="p-3 flex items-center">
                       <img
-                        src={`https://assets.coincap.io/assets/icons/${coin.symbol.toLowerCase()}@2x.png`}
+                        src={coin.image}
                         alt={coin.name}
                         className="w-6 h-6 mr-2"
                         onError={(e) => {
@@ -143,23 +99,27 @@ export default function CryptoPage() {
                           e.target.src = "/images/crypto.png";
                         }}
                       />
-                      <Link href={`/crypto/${coin.id}`} className="text-blue-600 hover:underline">
+                      <Link
+                        href={`/crypto/${coin.id}`}
+                        className="text-blue-600 hover:underline"
+                      >
                         {coin.name} ({coin.symbol.toUpperCase()})
                       </Link>
                     </td>
                     <td className={`p-3 font-semibold ${priceClass}`}>
-                      ${Number(coin.priceUsd).toFixed(2)}
+                      ${coin.current_price.toFixed(2)}
                     </td>
-                    <td className="p-3">${(Number(coin.marketCapUsd) / 1e9).toFixed(2)}B</td>
-                    <td className="p-3">${Number(coin.vwap24Hr).toFixed(2)}</td>
-                    <td className="p-3">{(Number(coin.supply) / 1e6).toFixed(2)}M</td>
-                    <td className="p-3">${(Number(coin.volumeUsd24Hr) / 1e9).toFixed(2)}B</td>
+                    <td className="p-3">${(coin.market_cap / 1e9).toFixed(2)}B</td>
+                    <td className="p-3">${(coin.total_volume / 1e9).toFixed(2)}B</td>
+                    <td className="p-3">{(coin.circulating_supply / 1e6).toFixed(2)}M</td>
                     <td
                       className={`p-3 ${
-                        Number(coin.changePercent24Hr) < 0 ? "text-red-500" : "text-green-500"
+                        coin.price_change_percentage_24h < 0
+                          ? "text-red-500"
+                          : "text-green-500"
                       }`}
                     >
-                      {Number(coin.changePercent24Hr).toFixed(2)}%
+                      {coin.price_change_percentage_24h?.toFixed(2)}%
                     </td>
                     <td className="p-3">
                       <button onClick={() => dispatch(toggleFavoriteCrypto(coin.id))}>
@@ -171,7 +131,7 @@ export default function CryptoPage() {
               })
             ) : (
               <tr>
-                <td colSpan="9" className="text-center p-4">
+                <td colSpan="8" className="text-center p-4">
                   Reload...
                 </td>
               </tr>
