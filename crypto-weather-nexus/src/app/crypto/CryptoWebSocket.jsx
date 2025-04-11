@@ -10,107 +10,66 @@ export default function CryptoWebSocket() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch initial crypto data
   const fetchCryptoData = async () => {
     try {
-      setLoading(true);
       setError(null);
-      const res = await fetch("https://api.coincap.io/v2/assets?limit=10");
+      const res = await fetch(
+        "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false"
+      );
       if (!res.ok) throw new Error(`Failed to fetch: ${res.statusText}`);
       const data = await res.json();
 
-      // Initialize previousPrice for first-time WebSocket updates
-      const formattedData = data.data.map((coin) => ({
-        ...coin,
-        previousPrice: parseFloat(coin.priceUsd),
-      }));
+      // Price alerts for significant changes
+      data.forEach((coin) => {
+        const prev = previousPrices[coin.id];
+        const curr = coin.current_price;
 
-      setCryptos(formattedData);
+        if (prev && Math.abs((curr - prev) / prev) * 100 >= 2) {
+          toast.warn(`${coin.symbol.toUpperCase()} price changed significantly!`, {
+            position: "top-right",
+            autoClose: 5000,
+            hideProgressBar: false,
+            closeOnClick: true,
+            pauseOnHover: true,
+            draggable: true,
+          });
+        }
+      });
+
+      // Set changes
+      setPriceChanges((prevChanges) => {
+        const updated = {};
+        data.forEach((coin) => {
+          const prev = previousPrices[coin.id];
+          const curr = coin.current_price;
+          if (prev !== undefined) {
+            updated[coin.id] = curr > prev ? "up" : curr < prev ? "down" : prevChanges[coin.id];
+          }
+        });
+        return updated;
+      });
+
       setPreviousPrices(
-        formattedData.reduce((acc, coin) => {
-          acc[coin.id] = parseFloat(coin.priceUsd);
+        data.reduce((acc, coin) => {
+          acc[coin.id] = coin.current_price;
           return acc;
         }, {})
       );
+
+      setCryptos(data);
+      setLoading(false);
     } catch (err) {
+      console.error("Error fetching data:", err);
       setError(err.message);
-    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchCryptoData();
+    const interval = setInterval(fetchCryptoData, 10000); // Poll every 10 seconds
 
-    // WebSocket connection
-    const socket = new WebSocket("wss://ws.coincap.io/prices?assets=bitcoin,ethereum,dogecoin");
-
-    socket.onopen = () => console.log("✅ WebSocket connected");
-    socket.onerror = (error) => console.error("🚨 WebSocket Error:", error);
-    socket.onclose = () => console.log("🔴 WebSocket disconnected");
-
-    socket.onmessage = (event) => {
-      const updatedPrices = JSON.parse(event.data);
-
-      setCryptos((prevCryptos) =>
-        prevCryptos.map((coin) => {
-          const newPrice = updatedPrices[coin.id];
-
-          if (newPrice) {
-            return {
-              ...coin,
-              previousPrice: coin.priceUsd || coin.previousPrice, // Keep last known price
-              priceUsd: newPrice, // Update price
-            };
-          }
-          return coin;
-        })
-      );
-
-      // Detect significant price changes (±2%)
-      setPreviousPrices((prev) => {
-        const newPrices = { ...prev, ...updatedPrices };
-
-        Object.keys(updatedPrices).forEach((coinId) => {
-          const newPrice = parseFloat(updatedPrices[coinId]);
-          const oldPrice = prev[coinId];
-
-          if (oldPrice && Math.abs((newPrice - oldPrice) / oldPrice) * 100 >= 2) {
-            toast.warn(`${coinId.toUpperCase()} price changed significantly!`, {
-              position: "top-right",
-              autoClose: 5000,
-              hideProgressBar: false,
-              closeOnClick: true,
-              pauseOnHover: true,
-              draggable: true,
-            });
-          }
-        });
-
-        return newPrices;
-      });
-
-      // Update price change indicators (up/down)
-      setPriceChanges((prevChanges) => {
-        const newChanges = { ...prevChanges };
-
-        Object.keys(updatedPrices).forEach((coinId) => {
-          if (previousPrices[coinId] !== undefined) {
-            newChanges[coinId] =
-              parseFloat(updatedPrices[coinId]) > parseFloat(previousPrices[coinId])
-                ? "up"
-                : "down";
-          }
-        });
-
-        return newChanges;
-      });
-    };
-
-    return () => {
-      socket.onclose = null;
-      socket.close();
-    };
+    return () => clearInterval(interval);
   }, []);
 
   return (
@@ -145,26 +104,30 @@ export default function CryptoWebSocket() {
                   <tr key={coin.id} className="border-b">
                     <td className="p-3 flex items-center">
                       <img
-                        src={`https://assets.coincap.io/assets/icons/${coin.symbol.toLowerCase()}@2x.png`}
+                        src={coin.image}
                         alt={coin.name}
                         className="w-6 h-6 mr-2"
                         onError={(e) => {
                           e.target.onerror = null;
-                          e.target.src = "/images/crypto.png"; // Default image
+                          e.target.src = "/images/crypto.png";
                         }}
                       />
                       {coin.name} ({coin.symbol.toUpperCase()})
                     </td>
                     <td className={`p-3 font-semibold ${priceClass}`}>
-                      ${Number(coin.priceUsd).toFixed(2)}
+                      ${coin.current_price.toFixed(2)}
                     </td>
-                    <td className="p-3">${(Number(coin.marketCapUsd) / 1e9).toFixed(2)}B</td>
+                    <td className="p-3">
+                      ${(coin.market_cap / 1e9).toFixed(2)}B
+                    </td>
                     <td
                       className={`p-3 ${
-                        Number(coin.changePercent24Hr) < 0 ? "text-red-500" : "text-green-500"
+                        coin.price_change_percentage_24h < 0
+                          ? "text-red-500"
+                          : "text-green-500"
                       }`}
                     >
-                      {Number(coin.changePercent24Hr).toFixed(2)}%
+                      {coin.price_change_percentage_24h.toFixed(2)}%
                     </td>
                   </tr>
                 );

@@ -1,12 +1,24 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 
-// Fetch initial crypto prices from API
+// Fetch initial crypto prices from CoinGecko
 export const fetchCryptos = createAsyncThunk("crypto/fetchCryptos", async () => {
-  const res = await fetch("https://api.coincap.io/v2/assets?limit=10");
+  const res = await fetch(
+    "https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&order=market_cap_desc&per_page=10&page=1&sparkline=false"
+  );
   const data = await res.json();
-  return data.data.map((coin) => ({
-    ...coin,
-    previousPrice: parseFloat(coin.priceUsd), // Store initial price
+
+  return data.map((coin) => ({
+    id: coin.id,
+    symbol: coin.symbol,
+    name: coin.name,
+    image: coin.image,
+    current_price: coin.current_price,
+    previousPrice: coin.current_price, // for animation or change detection
+    market_cap: coin.market_cap,
+    market_cap_rank: coin.market_cap_rank,
+    total_volume: coin.total_volume,
+    circulating_supply: coin.circulating_supply,
+    price_change_percentage_24h: coin.price_change_percentage_24h,
   }));
 });
 
@@ -22,8 +34,8 @@ const cryptoSlice = createSlice({
       const { id, price } = action.payload;
       const coin = state.cryptos.find((c) => c.id === id);
       if (coin) {
-        coin.previousPrice = coin.priceUsd;
-        coin.priceUsd = price;
+        coin.previousPrice = coin.current_price;
+        coin.current_price = price;
       }
     },
   },
